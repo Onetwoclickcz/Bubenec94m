@@ -30,47 +30,34 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script>
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xd9d9d9); // grey background
+    scene.background = new THREE.Color(0xd9d9d9);
 
     const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 2000);
     camera.position.set(25, 25, 70);
 
     const renderer = new THREE.WebGLRenderer({antialias:true});
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     document.body.appendChild(renderer.domElement);
 
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    controls.autoRotate = false;
 
     // Lighting
     scene.add(new THREE.AmbientLight(0xffffff, 0.45));
     const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
     dirLight.position.set(40, 80, 50);
-    dirLight.castShadow = true;
-    dirLight.shadow.mapSize.width = 2048; 
-    dirLight.shadow.mapSize.height = 2048;
     scene.add(dirLight);
 
-    // Room helper (slight transparency so doors are visible)
+    // Room helper
     function addRoom(name, w, d, h, color, x, z) {
       const geo = new THREE.BoxGeometry(w, h, d);
-      const mat = new THREE.MeshPhongMaterial({
-        color: color, 
-        shininess: 80,
-        transparent: true,
-        opacity: 0.80   // translucent rooms
-      });
+      const mat = new THREE.MeshPhongMaterial({ color: color, shininess: 80, transparent: true, opacity: 0.8 });
       const room = new THREE.Mesh(geo, mat);
-      room.receiveShadow = true;
-      room.castShadow = false;
       room.position.set(x + w/2, h/2, z + d/2);
       scene.add(room);
 
-      // Labels
+      // Label
       const canvas = document.createElement('canvas');
       canvas.width = 512; canvas.height = 256;
       const ctx = canvas.getContext('2d');
@@ -82,43 +69,31 @@
       ctx.textBaseline = "middle";
       ctx.fillText(name, canvas.width/2, canvas.height/2);
       const texture = new THREE.CanvasTexture(canvas);
-      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({map: texture, transparent:true}));
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({map:texture, transparent:true}));
       sprite.scale.set(w*1.2, d*0.5, 1);
       sprite.position.set(x + w/2, h + 1, z + d/2);
       scene.add(sprite);
     }
 
-    // Door helper (strong contrast, shinier)
+    // Door helper
     function addDoor(x, z, rotY=0, width=1.0, height=2.2, depth=0.1) {
       const geo = new THREE.BoxGeometry(width, height, depth);
-      const mat = new THREE.MeshStandardMaterial({
-        color: 0x111111,   // very dark color
-        metalness: 0.5,
-        roughness: 0.3
-      });
+      const mat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.5, roughness: 0.3 });
       const door = new THREE.Mesh(geo, mat);
       door.position.set(x, height/2, z);
       door.rotation.y = rotY;
-      door.castShadow = true;
       scene.add(door);
     }
 
-    // Rich colors
+    // Colors
     const colors = [
-      0x1e90ff, // pokoj 23.42
-      0xff6347, // pokoj 20.78
-      0x32cd32, // pokoj 17.28
-      0xffd700, // kitchen
-      0xf4a460, // hall
-      0x9932cc, // komora
-      0xdc143c, // bath
-      0xff4500, // wc
-      0x8a2be2  // spiz
+      0x1e90ff, 0xff6347, 0x32cd32,
+      0xffd700, 0xf4a460, 0x9932cc,
+      0xdc143c, 0xff4500, 0x8a2be2
     ];
-
     const wallHeight = 3;
 
-    // Rooms
+    // === Rooms ===
     addRoom("Pokoj 23,42 m²", 4.8, 4.8, wallHeight, colors[0], 0, 0);
     addRoom("Pokoj 20,78 m²", 4.5, 4.6, wallHeight, colors[1], 0, 5.0);
     addRoom("Pokoj 17,28 m²", 4.1, 4.2, wallHeight, colors[2], 0, 10.0);
@@ -128,31 +103,27 @@
     addRoom("Komora 1,90 m²", 1.5, 1.2, wallHeight, colors[5], 9.7, 4.0);
 
     addRoom("Koupelna 4,00 m²", 2.0, 2.0, wallHeight, colors[6], 5.0, 7.5);
-    addRoom("WC 1,35 m²", 1.3, 2.0, wallHeight, colors[7], 7.0, 7.5);
-    addRoom("Spíž 1,35 m²", 1.3, 2.0, wallHeight, colors[8], 8.4, 7.5);
 
-    // Doors
+    // === FIXED: WC & Spíž narrower and perfectly filling width 7.0 → 9.5 ===
+    addRoom("WC 1,25 m²", 1.25, 2.0, wallHeight, colors[7], 7.0, 7.5);
+    addRoom("Spíž 1,25 m²", 1.25, 2.0, wallHeight, colors[8], 8.25, 7.5);
+
+    // === Doors ===
     addDoor(2.4, 4.8, 0, 1.0);              
     addDoor(2.2, 9.6, 0, 1.0);              
     addDoor(4.7, 7.0, Math.PI/2, 1.0);      
     addDoor(6.75, 3.8, 0, 1.0);             
     addDoor(6.0, 7.5, 0, 1.0);              
-    addDoor(7.7, 7.5, 0, 0.8);              
-    addDoor(9.3, 7.5, 0, 0.8);              
+    addDoor(7.625, 7.5, 0, 0.8);  // WC door centered
+    addDoor(8.875, 7.5, 0, 0.8);  // Spíž door centered
     addDoor(9.7, 4.6, Math.PI/2, 0.8);      
     addDoor(4.8, 4.4, Math.PI/2, 0.8);      
 
     // Center camera
-    const centerX = 11/2;
-    const centerZ = 12/2;
-    controls.target.set(centerX, wallHeight/2, centerZ);
+    controls.target.set(11/2, wallHeight/2, 12/2);
     controls.update();
 
-    function animate(){
-      requestAnimationFrame(animate);
-      controls.update();
-      renderer.render(scene,camera);
-    }
+    function animate(){ requestAnimationFrame(animate); controls.update(); renderer.render(scene,camera); }
     animate();
 
     window.addEventListener("resize",()=>{
