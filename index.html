@@ -3,144 +3,163 @@
 <head>
   <meta charset="UTF-8">
   <title>Bubeneč 3+1, 94,28 m², sklep 10,8 m²</title>
-  <style> body {margin:0;} canvas{display:block;} </style>
+  <style> 
+    body {margin:0; background:#d9d9d9; overflow:hidden;} 
+    canvas{display:block;} 
+    #titleBanner {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 28px;
+      background: rgba(0,0,0,0.8);
+      color: white;
+      font-family: Helvetica, Arial, sans-serif;
+      font-size: 28px;
+      font-weight: bold;
+      border-radius: 8px;
+      z-index: 10;
+      pointer-events: none;
+    }
+  </style>
 </head>
 <body>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-<script>
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 2000);
-  camera.position.set(25, 25, 60);
+  <div id="titleBanner">Bubeneč 3+1, 94,28 m², sklep 10,8 m²</div>
 
-  const renderer = new THREE.WebGLRenderer({antialias:true});
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  document.body.appendChild(renderer.domElement);
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script>
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xd9d9d9); // grey background
 
-  const controls = new THREE.OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
+    const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 2000);
+    camera.position.set(25, 25, 70);
 
-  // Lighting
-  scene.add(new THREE.AmbientLight(0x888888));
-  const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-  dirLight.position.set(30, 60, 40);
-  scene.add(dirLight);
-
-  // === Room helper (3D box) ===
-  function addRoom(name, w, d, h, color, x, z) {
-    const geo = new THREE.BoxGeometry(w, h, d);
-    const mat = new THREE.MeshLambertMaterial({color: color, transparent:true, opacity:0.9});
-    const room = new THREE.Mesh(geo, mat);
-    room.position.set(x + w/2, h/2, z + d/2);
-    scene.add(room);
-
-    // label
-    const canvas = document.createElement('canvas');
-    canvas.width = 256; canvas.height = 128;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = "rgba(0,0,0,0.6)";
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-    ctx.font = "22px Arial"; ctx.fillStyle = "white";
-    ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText(name, canvas.width/2, canvas.height/2);
-    const texture = new THREE.CanvasTexture(canvas);
-    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({map: texture}));
-    sprite.scale.set(w*0.8, d*0.3, 1);
-    sprite.position.set(x + w/2, h + 1, z + d/2);
-    scene.add(sprite);
-  }
-
-  // === 3D Door helper ===
-  function addDoor(x, z, rotY=0, width=1.0, height=2.2, depth=0.1) {
-    const geo = new THREE.BoxGeometry(width, height, depth);
-    const mat = new THREE.MeshLambertMaterial({color: 0xaaaaaa});
-    const door = new THREE.Mesh(geo, mat);
-    door.position.set(x, height/2, z);
-    door.rotation.y = rotY;
-    scene.add(door);
-  }
-
-  // === Top title label ===
-  function addTitleLabel(text) {
-    const canvas = document.createElement('canvas');
-    canvas.width = 1400; canvas.height = 300;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = "rgba(0,0,0,0.7)";
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-    ctx.font = "bold 58px Arial";
-    ctx.fillStyle = "white";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(text, canvas.width/2, canvas.height/2);
-
-    const texture = new THREE.CanvasTexture(canvas);
-    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({map: texture, transparent:true}));
-    sprite.scale.set(25, 6, 1);  // Large banner
-    sprite.position.set(6, 11, 6); // Position above the flat
-    scene.add(sprite);
-  }
-
-  // Unique colors
-  const colors = [
-    0x87cefa, // pokoj 23.42
-    0xffa07a, // pokoj 20.78
-    0x90ee90, // pokoj 17.28
-    0xffd700, // kitchen
-    0xf4a460, // hall
-    0xba55d3, // komora
-    0xcd5c5c, // bath
-    0xfa8072, // wc
-    0x8a2be2  // spiz
-  ];
-
-  const wallHeight = 3;
-
-  // === Rooms ===
-  addRoom("Pokoj 23,42 m²", 4.8, 4.8, wallHeight, colors[0], 0, 0);
-  addRoom("Pokoj 20,78 m²", 4.5, 4.6, wallHeight, colors[1], 0, 5.0);
-  addRoom("Pokoj 17,28 m²", 4.1, 4.2, wallHeight, colors[2], 0, 10.0);
-
-  addRoom("Kuchyně 12,70 m²", 3.5, 3.6, wallHeight, colors[3], 5.0, 0);
-  addRoom("Předsíň 11,50 m²", 4.5, 3.3, wallHeight, colors[4], 5.0, 4.0);
-  addRoom("Komora 1,90 m²", 1.5, 1.2, wallHeight, colors[5], 9.7, 4.0);
-
-  addRoom("Koupelna 4,00 m²", 2.0, 2.0, wallHeight, colors[6], 5.0, 7.5);
-  addRoom("WC 1,35 m²", 1.3, 2.0, wallHeight, colors[7], 7.0, 7.5);
-  addRoom("Spíž 1,35 m²", 1.3, 2.0, wallHeight, colors[8], 8.4, 7.5);
-
-  // === Door placement ===
-  addDoor(2.4, 4.8, 0, 1.0);              // Pokoj 23.42 ↔ Pokoj 20.78
-  addDoor(2.2, 9.6, 0, 1.0);              // Pokoj 20.78 ↔ Pokoj 17.28
-  addDoor(4.7, 7.0, Math.PI/2, 1.0);      // Pokoj 20.78 ↔ Předsíň
-  addDoor(6.75, 3.8, 0, 1.0);             // Předsíň ↔ Kuchyně
-  addDoor(6.0, 7.5, 0, 1.0);              // Předsíň ↔ Koupelna
-  addDoor(7.7, 7.5, 0, 0.8);              // Předsíň ↔ WC
-  addDoor(9.3, 7.5, 0, 0.8);              // Předsíň ↔ Spíž
-  addDoor(9.7, 4.6, Math.PI/2, 0.8);      // Předsíň ↔ Komora
-  addDoor(4.8, 4.4, Math.PI/2, 0.8);      // Pokoj 23.42 ↔ Předsíň (east-north corner)
-
-  // === Title at top ===
-  addTitleLabel("Bubeneč 3+1, 94,28 m², sklep 10,8 m²");
-
-  // === Center camera ===
-  const centerX = 11 / 2;
-  const centerZ = 12 / 2;
-  controls.target.set(centerX, wallHeight/2, centerZ);
-  controls.update();
-
-  // Animate
-  function animate() {
-    requestAnimationFrame(animate);
-    controls.update();
-    renderer.render(scene, camera);
-  }
-  animate();
-
-  window.addEventListener("resize", () => {
-    camera.aspect = window.innerWidth/window.innerHeight;
-    camera.updateProjectionMatrix();
+    const renderer = new THREE.WebGLRenderer({antialias:true});
     renderer.setSize(window.innerWidth, window.innerHeight);
-  });
-</script>
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.autoRotate = false;
+
+    // Lighting
+    scene.add(new THREE.AmbientLight(0xffffff, 0.45));
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+    dirLight.position.set(40, 80, 50);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 2048; 
+    dirLight.shadow.mapSize.height = 2048;
+    scene.add(dirLight);
+
+    // Room helper (slight transparency so doors are visible)
+    function addRoom(name, w, d, h, color, x, z) {
+      const geo = new THREE.BoxGeometry(w, h, d);
+      const mat = new THREE.MeshPhongMaterial({
+        color: color, 
+        shininess: 80,
+        transparent: true,
+        opacity: 0.80   // translucent rooms
+      });
+      const room = new THREE.Mesh(geo, mat);
+      room.receiveShadow = true;
+      room.castShadow = false;
+      room.position.set(x + w/2, h/2, z + d/2);
+      scene.add(room);
+
+      // Labels
+      const canvas = document.createElement('canvas');
+      canvas.width = 512; canvas.height = 256;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = "rgba(0,0,0,0.75)";
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.font = "bold 42px Helvetica";
+      ctx.fillStyle = "white";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(name, canvas.width/2, canvas.height/2);
+      const texture = new THREE.CanvasTexture(canvas);
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({map: texture, transparent:true}));
+      sprite.scale.set(w*1.2, d*0.5, 1);
+      sprite.position.set(x + w/2, h + 1, z + d/2);
+      scene.add(sprite);
+    }
+
+    // Door helper (strong contrast, shinier)
+    function addDoor(x, z, rotY=0, width=1.0, height=2.2, depth=0.1) {
+      const geo = new THREE.BoxGeometry(width, height, depth);
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0x111111,   // very dark color
+        metalness: 0.5,
+        roughness: 0.3
+      });
+      const door = new THREE.Mesh(geo, mat);
+      door.position.set(x, height/2, z);
+      door.rotation.y = rotY;
+      door.castShadow = true;
+      scene.add(door);
+    }
+
+    // Rich colors
+    const colors = [
+      0x1e90ff, // pokoj 23.42
+      0xff6347, // pokoj 20.78
+      0x32cd32, // pokoj 17.28
+      0xffd700, // kitchen
+      0xf4a460, // hall
+      0x9932cc, // komora
+      0xdc143c, // bath
+      0xff4500, // wc
+      0x8a2be2  // spiz
+    ];
+
+    const wallHeight = 3;
+
+    // Rooms
+    addRoom("Pokoj 23,42 m²", 4.8, 4.8, wallHeight, colors[0], 0, 0);
+    addRoom("Pokoj 20,78 m²", 4.5, 4.6, wallHeight, colors[1], 0, 5.0);
+    addRoom("Pokoj 17,28 m²", 4.1, 4.2, wallHeight, colors[2], 0, 10.0);
+
+    addRoom("Kuchyně 12,70 m²", 3.5, 3.6, wallHeight, colors[3], 5.0, 0);
+    addRoom("Předsíň 11,50 m²", 4.5, 3.3, wallHeight, colors[4], 5.0, 4.0);
+    addRoom("Komora 1,90 m²", 1.5, 1.2, wallHeight, colors[5], 9.7, 4.0);
+
+    addRoom("Koupelna 4,00 m²", 2.0, 2.0, wallHeight, colors[6], 5.0, 7.5);
+    addRoom("WC 1,35 m²", 1.3, 2.0, wallHeight, colors[7], 7.0, 7.5);
+    addRoom("Spíž 1,35 m²", 1.3, 2.0, wallHeight, colors[8], 8.4, 7.5);
+
+    // Doors
+    addDoor(2.4, 4.8, 0, 1.0);              
+    addDoor(2.2, 9.6, 0, 1.0);              
+    addDoor(4.7, 7.0, Math.PI/2, 1.0);      
+    addDoor(6.75, 3.8, 0, 1.0);             
+    addDoor(6.0, 7.5, 0, 1.0);              
+    addDoor(7.7, 7.5, 0, 0.8);              
+    addDoor(9.3, 7.5, 0, 0.8);              
+    addDoor(9.7, 4.6, Math.PI/2, 0.8);      
+    addDoor(4.8, 4.4, Math.PI/2, 0.8);      
+
+    // Center camera
+    const centerX = 11/2;
+    const centerZ = 12/2;
+    controls.target.set(centerX, wallHeight/2, centerZ);
+    controls.update();
+
+    function animate(){
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene,camera);
+    }
+    animate();
+
+    window.addEventListener("resize",()=>{
+      camera.aspect=window.innerWidth/window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth,window.innerHeight);
+    });
+  </script>
 </body>
 </html>
