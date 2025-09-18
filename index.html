@@ -37,6 +37,8 @@
 
     const renderer = new THREE.WebGLRenderer({antialias:true});
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     document.body.appendChild(renderer.domElement);
 
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -44,9 +46,12 @@
     controls.dampingFactor = 0.05;
 
     // Lighting
-    scene.add(new THREE.AmbientLight(0xffffff, 0.45));
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
     dirLight.position.set(40, 80, 50);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 2048;
+    dirLight.shadow.mapSize.height = 2048;
     scene.add(dirLight);
 
     // Room helper
@@ -55,22 +60,34 @@
       const mat = new THREE.MeshPhongMaterial({ color: color, shininess: 80, transparent: true, opacity: 0.8 });
       const room = new THREE.Mesh(geo, mat);
       room.position.set(x + w/2, h/2, z + d/2);
+      room.receiveShadow = true;
       scene.add(room);
 
       // Label
       const canvas = document.createElement('canvas');
-      canvas.width = 512; canvas.height = 256;
       const ctx = canvas.getContext('2d');
-      ctx.fillStyle = "rgba(0,0,0,0.75)";
-      ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.font = "bold 42px Helvetica"; // Set font first to measure text
+      const textMetrics = ctx.measureText(name);
+      const textWidth = textMetrics.width;
+      const textHeight = 42; // Approximate font height
+
+      const padding = 20; // Padding around the text
+      canvas.width = textWidth + padding * 2;
+      canvas.height = textHeight + padding * 2;
+
+      // Redraw with new dimensions
       ctx.font = "bold 42px Helvetica";
+      ctx.fillStyle = "rgba(0,0,0,0.5)"; // Changed to 50% opacity
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = "white";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText(name, canvas.width/2, canvas.height/2);
+      ctx.fillText(name, canvas.width / 2, canvas.height / 2);
+
       const texture = new THREE.CanvasTexture(canvas);
       const sprite = new THREE.Sprite(new THREE.SpriteMaterial({map:texture, transparent:true}));
-      sprite.scale.set(w*1.2, d*0.5, 1);
+      // Adjust sprite scale to match the new canvas dimensions
+      sprite.scale.set(canvas.width / 100, canvas.height / 100, 1); // Scale factor might need fine-tuning
       sprite.position.set(x + w/2, h + 1, z + d/2);
       scene.add(sprite);
     }
@@ -82,7 +99,196 @@
       const door = new THREE.Mesh(geo, mat);
       door.position.set(x, height/2, z);
       door.rotation.y = rotY;
+      door.castShadow = true;
       scene.add(door);
+    }
+
+    // === Furniture helper ===
+    function addFurniture(roomType, x, z, w, d) {
+      const group = new THREE.Group();
+
+      switch(roomType) {
+        case "bedroom":
+          // Bed
+          const bed = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.5, 1.2),
+            new THREE.MeshPhongMaterial({color: 0x8b4513}));
+          bed.position.set(x + 1.0, 0.25, z + 0.6);
+          bed.castShadow = true;
+          bed.receiveShadow = true;
+          group.add(bed);
+
+          // Bedside table
+          const nightstand = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.6, 0.4),
+            new THREE.MeshPhongMaterial({color: 0x654321}));
+          nightstand.position.set(x + 3.2, 0.3, z + 0.6);
+          nightstand.castShadow = true;
+          group.add(nightstand);
+
+          // Wardrobe
+          const wardrobe = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.2, 0.6),
+            new THREE.MeshPhongMaterial({color: 0x8b7355}));
+          wardrobe.position.set(x + 0.8, 1.1, z + d - 0.3);
+          wardrobe.castShadow = true;
+          group.add(wardrobe);
+          break;
+
+        case "living":
+          // Sofa
+          const sofa = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.8, 1.0),
+            new THREE.MeshPhongMaterial({color: 0x4169e1}));
+          sofa.position.set(x + 1.5, 0.4, z + 1.0);
+          sofa.castShadow = true;
+          group.add(sofa);
+
+          // Coffee table
+          const coffeeTable = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.1, 0.8),
+            new THREE.MeshPhongMaterial({color: 0x8b4513}));
+          coffeeTable.position.set(x + w/2, 0.35, z + d/2);
+          coffeeTable.castShadow = true;
+          group.add(coffeeTable);
+
+          // TV stand
+          const tvStand = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.5, 0.4),
+            new THREE.MeshPhongMaterial({color: 0x2f4f4f}));
+          tvStand.position.set(x + w/2, 0.25, z + 0.2);
+          tvStand.castShadow = true;
+          group.add(tvStand);
+          break;
+
+        case "kitchen":
+          // Kitchen counter
+          const counter = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.9, 0.6),
+            new THREE.MeshPhongMaterial({color: 0xdcdcdc}));
+          counter.position.set(x + 1.5, 0.45, z + 0.3);
+          counter.castShadow = true;
+          group.add(counter);
+
+          // Fridge
+          const fridge = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.8, 0.7),
+            new THREE.MeshPhongMaterial({color: 0xffffff}));
+          fridge.position.set(x + w - 0.4, 0.9, z + 0.4);
+          fridge.castShadow = true;
+          group.add(fridge);
+
+          // Dining table
+          const diningTable = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.1, 1.2),
+            new THREE.MeshPhongMaterial({color: 0x8b4513}));
+          diningTable.position.set(x + w/2, 0.75, z + d - 0.8);
+          diningTable.castShadow = true;
+          group.add(diningTable);
+
+          // Chairs
+          for(let i = 0; i < 4; i++) {
+            const chair = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.8, 0.4),
+              new THREE.MeshPhongMaterial({color: 0x654321}));
+            const angle = (i * Math.PI) / 2;
+            chair.position.set(
+              diningTable.position.x + Math.cos(angle) * 0.8,
+              0.4,
+              diningTable.position.z + Math.sin(angle) * 0.8
+            );
+            chair.castShadow = true;
+            group.add(chair);
+          }
+          break;
+
+        case "hallway":
+          // Coat rack
+          const rack = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.8, 8),
+            new THREE.MeshPhongMaterial({color: 0x444444}));
+          rack.position.set(x + 0.5, 0.9, z + 0.5);
+          rack.castShadow = true;
+          group.add(rack);
+
+          // Shoe cabinet
+          const shoeCabinet = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.4, 0.3),
+            new THREE.MeshPhongMaterial({color: 0x8b4513}));
+          shoeCabinet.position.set(x + w - 0.6, 0.2, z + 0.2);
+          shoeCabinet.castShadow = true;
+          group.add(shoeCabinet);
+          break;
+
+        case "storage":
+          // Shelves
+          for(let i = 0; i < 4; i++) {
+            const shelf = new THREE.Mesh(new THREE.BoxGeometry(w * 0.8, 0.05, d * 0.6),
+              new THREE.MeshPhongMaterial({color: 0x8b4513}));
+            shelf.position.set(x + w/2, 0.3 + i * 0.4, z + d/2);
+            shelf.castShadow = true;
+            group.add(shelf);
+
+            // Storage boxes
+            for(let j = 0; j < 2; j++) {
+              const box = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 0.3),
+                new THREE.MeshPhongMaterial({color: 0xcd853f}));
+              box.position.set(x + 0.4 + j * 0.5, 0.4 + i * 0.4, z + d/2);
+              box.castShadow = true;
+              group.add(box);
+            }
+          }
+          break;
+
+        case "bathroom":
+          // Bathtub
+          const bathtub = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.6, 0.8),
+            new THREE.MeshPhongMaterial({color: 0xffffff}));
+          bathtub.position.set(x + 0.8, 0.3, z + 0.6);
+          bathtub.castShadow = true;
+          group.add(bathtub);
+
+          // Sink
+          const sink = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.1, 16),
+            new THREE.MeshPhongMaterial({color: 0xffffff}));
+          sink.position.set(x + w - 0.4, 0.8, z + d - 0.4);
+          sink.castShadow = true;
+          group.add(sink);
+
+          // Sink cabinet
+          const sinkCabinet = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.7, 0.5),
+            new THREE.MeshPhongMaterial({color: 0x8b4513}));
+          sinkCabinet.position.set(x + w - 0.4, 0.35, z + d - 0.4);
+          sinkCabinet.castShadow = true;
+          group.add(sinkCabinet);
+          break;
+
+        case "wc":
+          // Toilet
+          const toilet = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.4, 16),
+            new THREE.MeshPhongMaterial({color: 0xffffff}));
+          toilet.position.set(x + w/2, 0.2, z + d/2);
+          toilet.castShadow = true;
+          group.add(toilet);
+
+          // Toilet tank
+          const tank = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.2),
+            new THREE.MeshPhongMaterial({color: 0xffffff}));
+          tank.position.set(x + w/2, 0.6, z + d/2 - 0.15);
+          tank.castShadow = true;
+          group.add(tank);
+          break;
+
+        case "pantry":
+          // Shelves with items
+          for(let i = 0; i < 3; i++) {
+            const shelf = new THREE.Mesh(new THREE.BoxGeometry(w * 0.9, 0.05, d * 0.7),
+              new THREE.MeshPhongMaterial({color: 0x8b4513}));
+            shelf.position.set(x + w/2, 0.4 + i * 0.5, z + d/2);
+            shelf.castShadow = true;
+            group.add(shelf);
+
+            // Jars and boxes
+            for(let j = 0; j < 3; j++) {
+              const jar = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.2, 12),
+                new THREE.MeshPhongMaterial({color: [0xffcc00, 0xff6347, 0x32cd32][j]}));
+              jar.position.set(x + 0.3 + j * 0.25, 0.5 + i * 0.5, z + d/2);
+              jar.castShadow = true;
+              group.add(jar);
+            }
+          }
+          break;
+      }
+
+      scene.add(group);
     }
 
     // Colors
@@ -93,37 +299,54 @@
     ];
     const wallHeight = 3;
 
-    // === Rooms ===
+    // === Rooms with Furniture ===
     addRoom("Pokoj 23,42 m²", 4.8, 4.8, wallHeight, colors[0], 0, 0);
+    addFurniture("bedroom", 0, 0, 4.8, 4.8);
+
     addRoom("Pokoj 20,78 m²", 4.5, 4.6, wallHeight, colors[1], 0, 5.0);
+    addFurniture("living", 0, 5.0, 4.5, 4.6);
+
     addRoom("Pokoj 17,28 m²", 4.1, 4.2, wallHeight, colors[2], 0, 10.0);
+    addFurniture("bedroom", 0, 10.0, 4.1, 4.2);
 
     addRoom("Kuchyně 12,70 m²", 3.5, 3.6, wallHeight, colors[3], 5.0, 0);
+    addFurniture("kitchen", 5.0, 0, 3.5, 3.6);
+
     addRoom("Předsíň 11,50 m²", 4.5, 3.3, wallHeight, colors[4], 5.0, 4.0);
+    addFurniture("hallway", 5.0, 4.0, 4.5, 3.3);
+
     addRoom("Komora 1,90 m²", 1.5, 1.2, wallHeight, colors[5], 9.7, 4.0);
+    addFurniture("storage", 9.7, 4.0, 1.5, 1.2);
 
     addRoom("Koupelna 4,00 m²", 2.0, 2.0, wallHeight, colors[6], 5.0, 7.5);
+    addFurniture("bathroom", 5.0, 7.5, 2.0, 2.0);
 
-    // === FIXED: WC & Spíž narrower and perfectly filling width 7.0 → 9.5 ===
     addRoom("WC 1,25 m²", 1.25, 2.0, wallHeight, colors[7], 7.0, 7.5);
+    addFurniture("wc", 7.0, 7.5, 1.25, 2.0);
+
     addRoom("Spíž 1,25 m²", 1.25, 2.0, wallHeight, colors[8], 8.25, 7.5);
+    addFurniture("pantry", 8.25, 7.5, 1.25, 2.0);
 
     // === Doors ===
-    addDoor(2.4, 4.8, 0, 1.0);              
-    addDoor(2.2, 9.6, 0, 1.0);              
-    addDoor(4.7, 7.0, Math.PI/2, 1.0);      
-    addDoor(6.75, 3.8, 0, 1.0);             
-    addDoor(6.0, 7.5, 0, 1.0);              
+    addDoor(2.4, 4.8, 0, 1.0);
+    addDoor(2.2, 9.6, 0, 1.0);
+    addDoor(4.7, 7.0, Math.PI/2, 1.0);
+    addDoor(6.75, 3.8, 0, 1.0);
+    addDoor(6.0, 7.5, 0, 1.0);
     addDoor(7.625, 7.5, 0, 0.8);  // WC door centered
     addDoor(8.875, 7.5, 0, 0.8);  // Spíž door centered
-    addDoor(9.7, 4.6, Math.PI/2, 0.8);      
-    addDoor(4.8, 4.4, Math.PI/2, 0.8);      
+    addDoor(9.7, 4.6, Math.PI/2, 0.8);
+    addDoor(4.8, 4.4, Math.PI/2, 0.8);
 
     // Center camera
     controls.target.set(11/2, wallHeight/2, 12/2);
     controls.update();
 
-    function animate(){ requestAnimationFrame(animate); controls.update(); renderer.render(scene,camera); }
+    function animate(){
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene,camera);
+    }
     animate();
 
     window.addEventListener("resize",()=>{
